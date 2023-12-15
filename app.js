@@ -17,10 +17,22 @@ const entrada = () => {
 const obtenerUUIDs = async (page) => {
   await page.$eval("#ctl00_MainContent_RdoFechas", (el) => el.click());
   await page.$eval("#ctl00_MainContent_CldFechaInicial2_Calendario_text", (el) => {
-    el.value = "02/01/2022"; // <------------------------------------------------------ fecha inicial
+    function getFecha(dias = 0, meses = 0) {
+        const fecha = new Date(new Date().getTime() + (dias * 86400000) + (meses * 2592000000));
+        const dia = fecha.getDate();
+        const mes = fecha.getMonth() + 1;
+        return `${dia}/${mes}/${fecha.getFullYear()}`;
+    }
+    el.value = getFecha(); // <------------------------------------------------------ fecha inicial
   });
   await page.$eval("#ctl00_MainContent_CldFechaFinal2_Calendario_text", (el) => {
-    el.value = "03/01/2022"; // <----------------------------------------------------- fecha final
+    function getFecha(dias = 0, meses = 0) {
+        const fecha = new Date(new Date().getTime() + (dias * 86400000) + (meses * 2592000000));
+        const dia = fecha.getDate();
+        const mes = fecha.getMonth() + 1;
+        return `${dia}/${mes}/${fecha.getFullYear()}`;
+    }
+    el.value = getFecha(1); // <----------------------------------------------------- fecha final
   });
   await page.$eval("#ctl00_MainContent_BtnBusqueda", el => el.click());
   await page.waitForSelector("#ctl00_MainContent_UpnlResultados");
@@ -46,24 +58,33 @@ const descargarCFDI = async (page) => {
 }
 
 (async () => {
-  const browser = await puppeteer.launch({ headless: false, defaultViewport: null });
-  const page = await browser.newPage();
-  page.setDefaultNavigationTimeout(0)
-  page.setDefaultTimeout(0)
-  await page.goto('https://portalcfdi.facturaelectronica.sat.gob.mx/');
-  await page.waitForSelector("#divCaptcha > img");
-  const captcha_img = await page.$('#divCaptcha > img');
-  await captcha_img.screenshot({ path: 'captcha_img.png' });
-  const rfc_input = await page.$("#rfc");
-  await rfc_input.type("XXXXXXXXXXXX"); <------------------------------------ RFC
-  const password_input = await page.$("#password");
-  await password_input.type("XXXXXXXX"); <---------------------------------- CIEF
-  const userCaptcha_input = await page.$("#userCaptcha");
-  await userCaptcha_input.type(await entrada());
-  await page.$eval("#submit", el => el.click());
-  await page.waitForNavigation();
-  await page.goto("https://portalcfdi.facturaelectronica.sat.gob.mx/ConsultaEmisor.aspx");
-  const folios = await obtenerUUIDs(page);
-  console.log(folios)
-  await descargarCFDI(page);
+    const browser = await puppeteer.launch({ headless: false });
+    try {
+        const page = await browser.newPage();
+        await page.goto('https://portalcfdi.facturaelectronica.sat.gob.mx/');
+        await page.waitForSelector("#divCaptcha > img");
+        const captcha_img = await page.$('#divCaptcha > img');
+        await captcha_img.screenshot({ path: 'captcha_img.png' });
+        const rfc_input = await page.$("#rfc");
+        await rfc_input.type("SUF810227460"); //<------------------------------------ RFC
+        const password_input = await page.$("#password");
+        await password_input.type("SUF00440"); //<---------------------------------- CIEF
+        const userCaptcha_input = await page.$("#userCaptcha");
+        await userCaptcha_input.type(await entrada());
+        await page.$eval("#submit", el => el.click());
+        await page.waitForNavigation();
+        await page.goto("https://portalcfdi.facturaelectronica.sat.gob.mx/ConsultaEmisor.aspx");
+        const folios = await obtenerUUIDs(page);
+        console.log(folios)
+        //await descargarCFDI(page);
+    } catch (error) {
+        browser.close();
+    }
 })();
+
+function getFecha(dias = 0, meses = 0) {
+    const fecha = new Date(new Date().getTime() + (dias * 86400000) + (meses * 2592000000));
+    const dia = fecha.getDate();
+    const mes = fecha.getMonth() + 1;
+    return `${dia}/${mes}/${fecha.getFullYear()}`;
+}
